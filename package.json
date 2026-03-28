@@ -1,0 +1,18 @@
+{
+  "name": "border-calculator",
+  "version": "1.0.0",
+  "description": "Schengen 90/180 day visa calculator",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "deploy": "npm run build && gh-pages -d dist"
+  },
+  "devDependencies": {
+    "gh-pages": "^6.3.0",
+    "typescript": "^5.5.3",
+    "vite": "^6.0.0"
+  }
+}
