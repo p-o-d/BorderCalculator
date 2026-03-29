@@ -25,15 +25,12 @@ export function renderSummary(
   refLabel.className = 'summary-ref-label';
   refLabel.textContent = 'Calculating as of';
 
-  const refBtn = document.createElement('button');
-  refBtn.className = 'summary-ref-btn';
-  refBtn.textContent = isToday ? `Today (${formatDate(refDateStr)})` : formatDate(refDateStr);
-
-  // Native date picker triggered by hidden input
+  // Native date input — visible and styled as a button. Works on all browsers.
   const dateInput = document.createElement('input');
   dateInput.type = 'date';
   dateInput.className = 'summary-ref-input';
   dateInput.value = refDateStr;
+  dateInput.setAttribute('aria-label', 'Reference date for calculation');
   dateInput.addEventListener('change', () => {
     if (dateInput.value) {
       const picked = dateInput.value;
@@ -45,10 +42,7 @@ export function renderSummary(
     }
   });
 
-  refBtn.addEventListener('click', () => dateInput.showPicker());
-
   refSection.appendChild(refLabel);
-  refSection.appendChild(refBtn);
   refSection.appendChild(dateInput);
 
   if (!isToday) {

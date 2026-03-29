@@ -97,29 +97,41 @@ body {
   color: var(--color-text-muted);
 }
 
-.summary-ref-btn {
+/* Native date input styled as a button — no overlays, works everywhere */
+.summary-ref-input {
   padding: 0.35rem 0.65rem;
   border: 1px solid var(--color-primary);
   background: #eff6ff;
   border-radius: var(--radius);
+  font-family: inherit;
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--color-primary);
   cursor: pointer;
   transition: background 0.15s;
   -webkit-tap-highlight-color: transparent;
+  /* 16px minimum prevents iOS auto-zoom on focus */
+  min-height: 44px;
+  line-height: 1.2;
 }
 
-.summary-ref-btn:hover {
+.summary-ref-input:hover {
   background: #dbeafe;
 }
 
-.summary-ref-input {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-  width: 0;
-  height: 0;
+.summary-ref-input:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Chromium: style the picker icon */
+.summary-ref-input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.6;
+}
+
+.summary-ref-input::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
 }
 
 .summary-ref-reset {
