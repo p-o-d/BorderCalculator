@@ -1,5 +1,6 @@
 import { SchengenSummary } from '../calculator/types';
 import { computeSummary, fromDateStr, todayStr } from '../calculator/engine';
+import { t, getLocale } from '../i18n/index';
 
 export interface SummaryCallbacks {
   onReferenceDateChange: (dateStr: string | null) => void;
@@ -11,6 +12,7 @@ export function renderSummary(
   referenceDate: string | null,
   callbacks: SummaryCallbacks,
 ): void {
+  const i = t();
   const refDateStr = referenceDate ?? todayStr();
   const refDate = fromDateStr(refDateStr);
   const isToday = !referenceDate;
@@ -23,14 +25,13 @@ export function renderSummary(
 
   const refLabel = document.createElement('span');
   refLabel.className = 'summary-ref-label';
-  refLabel.textContent = 'Calculating as of';
+  refLabel.textContent = i.calculatingAsOf;
 
-  // Native date input — visible and styled as a button. Works on all browsers.
   const dateInput = document.createElement('input');
   dateInput.type = 'date';
   dateInput.className = 'summary-ref-input';
   dateInput.value = refDateStr;
-  dateInput.setAttribute('aria-label', 'Reference date for calculation');
+  dateInput.setAttribute('aria-label', i.referenceDateLabel);
   dateInput.addEventListener('change', () => {
     if (dateInput.value) {
       const picked = dateInput.value;
@@ -48,7 +49,7 @@ export function renderSummary(
   if (!isToday) {
     const resetBtn = document.createElement('button');
     resetBtn.className = 'summary-ref-reset';
-    resetBtn.textContent = 'Reset to today';
+    resetBtn.textContent = i.resetToToday;
     resetBtn.addEventListener('click', () => {
       callbacks.onReferenceDateChange(null);
     });
@@ -71,7 +72,7 @@ export function renderSummary(
 
   const label = document.createElement('span');
   label.className = 'summary-remaining-label';
-  label.textContent = 'days remaining';
+  label.textContent = i.daysRemaining;
 
   remaining.appendChild(num);
   remaining.appendChild(label);
@@ -92,7 +93,7 @@ export function renderSummary(
     </svg>
     <div class="summary-ring-text">
       <span class="summary-ring-num">${summary.daysUsed}</span>
-      <span class="summary-ring-label">of 90 used</span>
+      <span class="summary-ring-label">${i.ofNUsed(90)}</span>
     </div>
   `;
   container.appendChild(progress);
@@ -101,12 +102,12 @@ export function renderSummary(
   if (summary.isOverstaying) {
     const warn = document.createElement('div');
     warn.className = 'summary-alert summary-alert--danger';
-    warn.innerHTML = `<strong>Overstay!</strong> You have exceeded the 90-day limit by ${summary.overstayDays} day${summary.overstayDays !== 1 ? 's' : ''}.`;
+    warn.innerHTML = i.overstayAlert(summary.overstayDays);
     container.appendChild(warn);
   } else if (summary.daysRemaining <= 10 && summary.daysRemaining > 0) {
     const warn = document.createElement('div');
     warn.className = 'summary-alert summary-alert--warning';
-    warn.innerHTML = `<strong>Approaching limit!</strong> Only ${summary.daysRemaining} day${summary.daysRemaining !== 1 ? 's' : ''} remaining.`;
+    warn.innerHTML = i.approachingAlert(summary.daysRemaining);
     container.appendChild(warn);
   }
 
@@ -114,15 +115,16 @@ export function renderSummary(
   const details = document.createElement('div');
   details.className = 'summary-details';
 
-  const refLabel2 = isToday ? 'last 180 days' : `180 days before ${formatDate(refDateStr)}`;
+  const refContext = isToday ? i.last180Days : i.daysBefore(formatDate(refDateStr));
+  const fromLabel = isToday ? i.tomorrow : formatDate(refDateStr);
   const items: [string, string][] = [
-    [`Days used (${refLabel2})`, String(summary.daysUsed)],
-    ['Days remaining', String(summary.daysRemaining)],
-    [`Max consecutive stay from ${isToday ? 'tomorrow' : formatDate(refDateStr)}`, `${summary.maxConsecutiveStay} day${summary.maxConsecutiveStay !== 1 ? 's' : ''}`],
+    [i.daysUsedLabel(refContext), String(summary.daysUsed)],
+    [i.daysRemainingLabel, String(summary.daysRemaining)],
+    [i.maxStayLabel(fromLabel), i.dayCount(summary.maxConsecutiveStay)],
   ];
 
   if (summary.nextDayFreed) {
-    items.push(['Next day freed', formatDate(summary.nextDayFreed)]);
+    items.push([i.nextDayFreed, formatDate(summary.nextDayFreed)]);
   }
 
   for (const [lbl, val] of items) {
@@ -137,9 +139,9 @@ export function renderSummary(
   // Clear all button
   const clearBtn = document.createElement('button');
   clearBtn.className = 'summary-clear-btn';
-  clearBtn.textContent = 'Clear all dates';
+  clearBtn.textContent = i.clearAllDates;
   clearBtn.addEventListener('click', () => {
-    if (confirm('Remove all marked dates? This cannot be undone.')) {
+    if (confirm(i.clearConfirm)) {
       schengenDays.clear();
       window.dispatchEvent(new CustomEvent('schengen-update'));
     }
@@ -156,7 +158,8 @@ function getStatusClass(summary: SchengenSummary): string {
 function formatDate(dateStr: string): string {
   const [y, m, d] = dateStr.split('-').map(Number);
   const date = new Date(y, m - 1, d);
-  return date.toLocaleDateString('en-GB', {
+  const locale = getLocale() === 'uk' ? 'uk-UA' : getLocale() === 'es' ? 'es-ES' : 'en-GB';
+  return date.toLocaleDateString(locale, {
     day: 'numeric',
     month: 'short',
     year: 'numeric',

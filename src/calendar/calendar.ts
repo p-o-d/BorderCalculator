@@ -1,12 +1,7 @@
 import { DayStatus } from '../calculator/types';
-import { computeMonthGrid, fromDateStr, toDateStr } from '../calculator/engine';
+import { computeMonthGrid, fromDateStr } from '../calculator/engine';
+import { t, getLocale } from '../i18n/index';
 import './calendar.css';
-
-const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
-const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 export type SelectionMode = 'single' | 'trip' | 'remove';
 
@@ -27,6 +22,7 @@ export function renderCalendar(
   month: number,
   callbacks: CalendarCallbacks,
 ): void {
+  const i = t();
   const grid = computeMonthGrid(schengenDays, year, month);
   container.innerHTML = '';
 
@@ -36,7 +32,7 @@ export function renderCalendar(
 
   const singleBtn = document.createElement('button');
   singleBtn.className = `cal-mode-btn ${selectionMode === 'single' ? 'cal-mode-btn--active' : ''}`;
-  singleBtn.textContent = 'Toggle day';
+  singleBtn.textContent = i.toggleDay;
   singleBtn.addEventListener('click', () => {
     selectionMode = 'single';
     tripStartDate = null;
@@ -45,7 +41,7 @@ export function renderCalendar(
 
   const tripBtn = document.createElement('button');
   tripBtn.className = `cal-mode-btn ${selectionMode === 'trip' ? 'cal-mode-btn--active' : ''}`;
-  tripBtn.textContent = 'Add trip';
+  tripBtn.textContent = i.addTrip;
   tripBtn.addEventListener('click', () => {
     selectionMode = 'trip';
     tripStartDate = null;
@@ -54,7 +50,7 @@ export function renderCalendar(
 
   const removeBtn = document.createElement('button');
   removeBtn.className = `cal-mode-btn ${selectionMode === 'remove' ? 'cal-mode-btn--active' : ''}`;
-  removeBtn.textContent = 'Remove trip';
+  removeBtn.textContent = i.removeTrip;
   removeBtn.addEventListener('click', () => {
     selectionMode = 'remove';
     tripStartDate = null;
@@ -72,14 +68,14 @@ export function renderCalendar(
     hint.className = 'cal-hint';
     const isRemove = selectionMode === 'remove';
     if (!tripStartDate) {
-      hint.textContent = isRemove ? 'Tap the first day to remove' : 'Tap your entry date';
+      hint.textContent = isRemove ? i.tapFirstDayToRemove : i.tapEntryDate;
     } else {
       const formatted = formatShortDate(tripStartDate);
-      hint.innerHTML = `${isRemove ? 'Removing from' : 'Entry'}: <strong>${formatted}</strong> — now tap your ${isRemove ? 'last' : 'exit'} date`;
+      hint.innerHTML = isRemove ? i.removingFromSelected(formatted) : i.entryDateSelected(formatted);
       // Cancel button
       const cancelBtn = document.createElement('button');
       cancelBtn.className = 'cal-hint-cancel';
-      cancelBtn.textContent = 'Cancel';
+      cancelBtn.textContent = i.cancel;
       cancelBtn.addEventListener('click', () => {
         tripStartDate = null;
         rerender();
@@ -100,7 +96,7 @@ export function renderCalendar(
   const prevBtn = document.createElement('button');
   prevBtn.className = 'cal-nav-btn';
   prevBtn.textContent = '\u2039';
-  prevBtn.setAttribute('aria-label', 'Previous month');
+  prevBtn.setAttribute('aria-label', i.previousMonth);
   prevBtn.addEventListener('click', () => {
     let m = month - 1, y = year;
     if (m < 0) { m = 11; y--; }
@@ -110,7 +106,7 @@ export function renderCalendar(
   const nextBtn = document.createElement('button');
   nextBtn.className = 'cal-nav-btn';
   nextBtn.textContent = '\u203A';
-  nextBtn.setAttribute('aria-label', 'Next month');
+  nextBtn.setAttribute('aria-label', i.nextMonth);
   nextBtn.addEventListener('click', () => {
     let m = month + 1, y = year;
     if (m > 11) { m = 0; y++; }
@@ -119,11 +115,11 @@ export function renderCalendar(
 
   const title = document.createElement('h2');
   title.className = 'cal-title';
-  title.textContent = `${MONTH_NAMES[month]} ${year}`;
+  title.textContent = `${i.months[month]} ${year}`;
 
   const todayBtn = document.createElement('button');
   todayBtn.className = 'cal-today-btn';
-  todayBtn.textContent = 'Today';
+  todayBtn.textContent = i.today;
   todayBtn.addEventListener('click', () => {
     const now = new Date();
     callbacks.onMonthChange(now.getFullYear(), now.getMonth());
@@ -138,7 +134,7 @@ export function renderCalendar(
   // Day-of-week labels
   const dowRow = document.createElement('div');
   dowRow.className = 'cal-dow-row';
-  for (const label of DAY_LABELS) {
+  for (const label of i.daysShort) {
     const el = document.createElement('div');
     el.className = 'cal-dow';
     el.textContent = label;
@@ -182,13 +178,10 @@ function handleDayClick(
     rerender();
   } else {
     if (selectionMode === 'remove') {
-      // For remove mode, we remove the range
       const d1 = fromDateStr(tripStartDate);
       const d2 = fromDateStr(dateStr);
       const start = d1 < d2 ? tripStartDate : dateStr;
       const end = d1 < d2 ? dateStr : tripStartDate;
-      // Use onRangeToggle but we need to ensure it removes.
-      // We mark the start as schengen first so the toggle logic removes.
       callbacks.onRangeToggle(start, end);
     } else {
       callbacks.onRangeToggle(tripStartDate, dateStr);
@@ -201,7 +194,6 @@ function getPreviewRange(): Set<string> | null {
   if ((selectionMode !== 'trip' && selectionMode !== 'remove') || !tripStartDate) {
     return null;
   }
-  // Just highlight the start date as preview
   return new Set([tripStartDate]);
 }
 
@@ -217,7 +209,6 @@ function createDayCell(status: DayStatus, previewRange: Set<string> | null): HTM
   if (status.isOverstay && status.isSchengen) classes.push('cal-day--overstay');
   else if (status.daysUsedInWindow >= 80 && status.isSchengen) classes.push('cal-day--warning');
 
-  // Trip start preview
   if (previewRange?.has(status.date)) {
     classes.push('cal-day--trip-start');
   }
@@ -229,7 +220,6 @@ function createDayCell(status: DayStatus, previewRange: Set<string> | null): HTM
   dayNum.textContent = String(parseInt(status.date.split('-')[2], 10));
   cell.appendChild(dayNum);
 
-  // Show remaining days indicator on Schengen days
   if (status.isSchengen && status.isCurrentMonth) {
     const badge = document.createElement('span');
     badge.className = 'cal-day-badge';
@@ -243,5 +233,6 @@ function createDayCell(status: DayStatus, previewRange: Set<string> | null): HTM
 function formatShortDate(dateStr: string): string {
   const [y, m, d] = dateStr.split('-').map(Number);
   const date = new Date(y, m - 1, d);
-  return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  const locale = getLocale() === 'uk' ? 'uk-UA' : getLocale() === 'es' ? 'es-ES' : 'en-GB';
+  return date.toLocaleDateString(locale, { day: 'numeric', month: 'short' });
 }
